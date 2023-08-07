@@ -32,11 +32,23 @@ async function load(version) {
     return solcs[version];
 }
 
-async function abi(db, hash, output, name, version) {
+async function abi(db, hash, base) {
+    const { ContractName: name, CompilerVersion: version } = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     process.stdout.write(`ABI from Contract ${magenta(hash)} ${cyan(name)} ${version} ${dim('|')} `);
+
+    const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
+    const output = fs.readFileSync(path.join(base, 'output.json'), 'utf8');
 
     const { contracts } = JSON.parse(output);
     process.stdout.write(`${Object.keys(contracts).length} contracts `);
+
+    await db.run('INSERT INTO contract_hashes(hash, name, version, source, output) VALUES (:hash, :name, :version, :source, :output)', {
+        ':hash': hash,
+        ':name': name,
+        ':version': version,
+        ':source': sym,
+        ':output': output,
+    });
 
     for (const file in contracts) {
         for (const contract in contracts[file]) {
@@ -56,15 +68,19 @@ async function abi(db, hash, output, name, version) {
     }
 }
 
-async function compile(db, hash, base) {
+async function compile(hash, base) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     process.stdout.write(`Bytecode Hash ${magenta(hash)} ${cyan(metadata.ContractName)} ${metadata.CompilerVersion} ${dim('|')}`);
 
-    await db.run('INSERT INTO contract_hashes(hash, name, version) VALUES (:hash, :name, :version)', {
-        ':hash': hash,
-        ':name': metadata.ContractName,
-        ':version': metadata.CompilerVersion,
-    });
+    try {
+        const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
+        const output = JSON.parse(fs.readFileSync(path.join(base, 'output.json'), 'utf8'));
+        if (sym && output && output.contracts) {
+            console.info(dim(` Already compiled ${green(sym + ' \u2713')}`));
+            return;
+        }
+    } catch (err) {
+    }
 
     const tries = [
         [async function () {
@@ -98,11 +114,8 @@ async function compile(db, hash, base) {
     for (const [tryFn, sym] of tries) {
         try {
             const output = await tryFn();
-            await db.run('UPDATE contract_hashes SET source = :source, output = :output WHERE hash = :hash', {
-                ':hash': hash,
-                ':source': sym,
-                ':output': output,
-            });
+            fs.writeFileSync(path.join(base, `sym.txt`), sym);
+            fs.writeFileSync(path.join(base, `output.json`), output);
 
             process.stdout.write(`${green(sym + ' \u2713')} `);
             break;
@@ -115,33 +128,38 @@ async function compile(db, hash, base) {
 }
 
 async function main() {
-    const db = await open({
-        filename: 'solc.sqlite',
-        driver: sqlite3.Database
-    });
-    await db.exec('CREATE TABLE IF NOT EXISTS contract_hashes (hash TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT NOT NULL, version TEXT NOT NULL, source TEXT, output TEXT) STRICT');
-    await db.exec('CREATE TABLE IF NOT EXISTS contract_functions (hash TEXT, name TEXT, version TEXT, file TEXT, contract TEXT, sighash TEXT NOT NULL, PRIMARY KEY (hash, file, sighash) ON CONFLICT REPLACE) STRICT');
-    await db.exec('CREATE VIEW IF NOT EXISTS sighashes AS SELECT sighash, COUNT(sighash) AS count FROM contract_functions GROUP BY sighash ORDER BY COUNT(sighash) DESC');
-    await db.exec('CREATE VIEW IF NOT EXISTS versions AS SELECT version, COUNT(version) AS count FROM contract_hashes GROUP BY version ORDER BY COUNT(version) DESC');
-
     const DIR = '../smart-contract-fiesta/organized_contracts';
 
     const cmd = process.argv[2];
     if (cmd === 'abi') {
-        const rows = await db.all('SELECT hash, name, version, source, output FROM contract_hashes');
-        for (const row of rows) {
-            try {
-                await abi(db, row.hash, row.output, row.name, row.version);
-                console.info(`${green(' \u2713')}`);
-            } catch (err) {
-                console.info(`${red(err.message + ' \u2A2F')}`);
+        const db = await open({
+            filename: 'solc.sqlite',
+            driver: sqlite3.Database
+        });
+        await db.exec('CREATE TABLE IF NOT EXISTS contract_hashes (hash TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT NOT NULL, version TEXT NOT NULL, source TEXT, output TEXT) STRICT');
+        await db.exec('CREATE TABLE IF NOT EXISTS contract_functions (hash TEXT, name TEXT, version TEXT, file TEXT, contract TEXT, sighash TEXT NOT NULL, PRIMARY KEY (hash, file, sighash) ON CONFLICT REPLACE) STRICT');
+        await db.exec('CREATE VIEW IF NOT EXISTS sighashes AS SELECT sighash, COUNT(sighash) AS count FROM contract_functions GROUP BY sighash ORDER BY COUNT(sighash) DESC');
+        await db.exec('CREATE VIEW IF NOT EXISTS versions AS SELECT version, COUNT(version) AS count FROM contract_hashes GROUP BY version ORDER BY COUNT(version) DESC');
+
+        for (const prefix of fs.readdirSync(DIR)) {
+            for (const hash of fs.readdirSync(`${DIR}/${prefix}`)) {
+                try {
+                    await abi(db, hash, `${DIR}/${prefix}/${hash}`);
+                    console.info(`${green(' \u2713')}`);
+                } catch (err) {
+                    console.info(`${red(err.message + ' \u2A2F')}`);
+                }
             }
         }
     } else if (cmd === 'compile') {
         fs.mkdirSync('./.solc', { recursive: true });
-        for (const prefix of fs.readdirSync(DIR)) {
+        let prefixes = fs.readdirSync(DIR);
+        if (process.argv.length >= 4) {
+            prefixes = prefixes.filter(p => process.argv.slice(3).includes(p));
+        }
+        for (const prefix of prefixes) {
             for (const hash of fs.readdirSync(`${DIR}/${prefix}`)) {
-                await compile(db, hash, `${DIR}/${prefix}/${hash}`);
+                await compile(hash, `${DIR}/${prefix}/${hash}`);
             }
         }
     } else if (cmd === 'stats') {
