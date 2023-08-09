@@ -32,7 +32,7 @@ async function load(version) {
     return solcs[version];
 }
 
-async function abi(db, hash, base) {
+async function abi(db, fnsdb, hash, base) {
     const { ContractName: name, CompilerVersion: version } = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     process.stdout.write(`ABI from Contract ${magenta(hash)} ${cyan(name)} ${version} ${dim('|')} `);
 
@@ -42,12 +42,11 @@ async function abi(db, hash, base) {
     const { contracts } = JSON.parse(output);
     process.stdout.write(`${Object.keys(contracts).length} contracts `);
 
-    await db.run('INSERT INTO contract_hashes(hash, name, version, source, output) VALUES (:hash, :name, :version, :source, :output)', {
+    await db.run('INSERT INTO contract_hashes(hash, name, version, source) VALUES (:hash, :name, :version, :source)', {
         ':hash': hash,
         ':name': name,
         ':version': version,
         ':source': sym,
-        ':output': output,
     });
 
     for (const file in contracts) {
@@ -61,6 +60,9 @@ async function abi(db, hash, base) {
                     ':version': version,
                     ':file': file,
                     ':contract': contract,
+                    ':sighash': fn,
+                });
+                await fnsdb.run('INSERT INTO functions(sighash) VALUES (:sighash)', {
                     ':sighash': fn,
                 });
             }
@@ -128,7 +130,7 @@ async function compile(hash, base) {
 }
 
 async function main() {
-    const DIR = '../smart-contract-fiesta/organized_contracts';
+    const DIR = './smart-contract-fiesta/organized_contracts';
 
     const cmd = process.argv[2];
     if (cmd === 'abi') {
@@ -136,15 +138,21 @@ async function main() {
             filename: 'solc.sqlite',
             driver: sqlite3.Database
         });
-        await db.exec('CREATE TABLE IF NOT EXISTS contract_hashes (hash TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT NOT NULL, version TEXT NOT NULL, source TEXT, output TEXT) STRICT');
+        await db.exec('CREATE TABLE IF NOT EXISTS contract_hashes (hash TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT NOT NULL, version TEXT NOT NULL, source TEXT) STRICT');
         await db.exec('CREATE TABLE IF NOT EXISTS contract_functions (hash TEXT, name TEXT, version TEXT, file TEXT, contract TEXT, sighash TEXT NOT NULL, PRIMARY KEY (hash, file, sighash) ON CONFLICT REPLACE) STRICT');
         await db.exec('CREATE VIEW IF NOT EXISTS sighashes AS SELECT sighash, COUNT(sighash) AS count FROM contract_functions GROUP BY sighash ORDER BY COUNT(sighash) DESC');
         await db.exec('CREATE VIEW IF NOT EXISTS versions AS SELECT version, COUNT(version) AS count FROM contract_hashes GROUP BY version ORDER BY COUNT(version) DESC');
 
+        const fnsdb = await open({
+            filename: 'functions.sqlite',
+            driver: sqlite3.Database
+        });
+        await fnsdb.exec('CREATE TABLE IF NOT EXISTS functions (sighash TEXT PRIMARY KEY ON CONFLICT IGNORE) STRICT');
+
         for (const prefix of fs.readdirSync(DIR)) {
             for (const hash of fs.readdirSync(`${DIR}/${prefix}`)) {
                 try {
-                    await abi(db, hash, `${DIR}/${prefix}/${hash}`);
+                    await abi(db, fnsdb, hash, `${DIR}/${prefix}/${hash}`);
                     console.info(`${green(' \u2713')}`);
                 } catch (err) {
                     console.info(`${red(err.message + ' \u2A2F')}`);
