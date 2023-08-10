@@ -10,6 +10,9 @@ const { open } = require('sqlite');
 
 const solcs = {};
 
+const formath = hash => hash.slice(0, 4) + '..' + hash.slice(60);
+const formatv = ver => ver.replace('commit.', '');
+
 async function load(version) {
     if (solcs[version]) {
         process.stdout.write(yellow('M'));
@@ -34,7 +37,7 @@ async function load(version) {
 
 async function abi(db, fnsdb, hash, base) {
     const { ContractName: name, CompilerVersion: version } = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
-    process.stdout.write(`ABI from Contract ${magenta(hash)} ${cyan(name)} ${version} ${dim('|')} `);
+    process.stdout.write(`ABI ${magenta(formath(hash))} ${cyan(name)} ${formatv(version)} ${dim('|')} `);
 
     const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
     const output = fs.readFileSync(path.join(base, 'output.json'), 'utf8');
@@ -72,13 +75,13 @@ async function abi(db, fnsdb, hash, base) {
 
 async function compile(hash, base) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
-    process.stdout.write(`Bytecode Hash ${magenta(hash)} ${cyan(metadata.ContractName)} ${metadata.CompilerVersion} ${dim('|')}`);
+    process.stdout.write(`${magenta(formath(hash))} ${cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${dim('|')}`);
 
     try {
         const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
         const output = JSON.parse(fs.readFileSync(path.join(base, 'output.json'), 'utf8'));
         if (sym && output && output.contracts) {
-            console.info(dim(` Already compiled ${green(sym + ' \u2713')}`));
+            console.info(dim(` DONE ${green(sym + ' \u2713')}`));
             return;
         }
     } catch (err) {
