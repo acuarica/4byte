@@ -1,3 +1,4 @@
 /node_modules/
-/.solc/soljson-*.js
+/smart-contract-fiesta/
+/.solc/
 /solc.sqlite
