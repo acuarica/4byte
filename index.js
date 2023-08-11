@@ -35,7 +35,7 @@ async function load(version) {
     return solcs[version];
 }
 
-async function abi(db, fnsdb, hash, base) {
+async function abi(db, hash, base) {
     const { ContractName: name, CompilerVersion: version } = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     process.stdout.write(`ABI ${magenta(formath(hash))} ${cyan(name)} ${formatv(version)} ${dim('|')} `);
 
@@ -63,9 +63,6 @@ async function abi(db, fnsdb, hash, base) {
                     ':version': version,
                     ':file': file,
                     ':contract': contract,
-                    ':sighash': fn,
-                });
-                await fnsdb.run('INSERT INTO functions(sighash) VALUES (:sighash)', {
                     ':sighash': fn,
                 });
             }
@@ -146,16 +143,10 @@ async function main() {
         await db.exec('CREATE VIEW IF NOT EXISTS sighashes AS SELECT sighash, COUNT(sighash) AS count FROM contract_functions GROUP BY sighash ORDER BY COUNT(sighash) DESC');
         await db.exec('CREATE VIEW IF NOT EXISTS versions AS SELECT version, COUNT(version) AS count FROM contract_hashes GROUP BY version ORDER BY COUNT(version) DESC');
 
-        const fnsdb = await open({
-            filename: 'functions.sqlite',
-            driver: sqlite3.Database
-        });
-        await fnsdb.exec('CREATE TABLE IF NOT EXISTS functions (sighash TEXT PRIMARY KEY ON CONFLICT IGNORE) STRICT');
-
         for (const prefix of fs.readdirSync(DIR)) {
             for (const hash of fs.readdirSync(`${DIR}/${prefix}`)) {
                 try {
-                    await abi(db, fnsdb, hash, `${DIR}/${prefix}/${hash}`);
+                    await abi(db, hash, `${DIR}/${prefix}/${hash}`);
                     console.info(`${green(' \u2713')}`);
                 } catch (err) {
                     console.info(`${red(err.message + ' \u2A2F')}`);
