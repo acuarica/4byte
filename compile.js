@@ -2,11 +2,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { yellow, magenta, cyan, dim, green, red, blue, strikethrough } = require('chalk');
+const c = require('chalk');
 const solc = require('solc');
-const { FunctionFragment } = require('ethers');
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
 
 const solcs = {};
 
@@ -15,12 +12,12 @@ const formatv = ver => ver.replace('commit.', '');
 
 function load(version) {
     if (solcs[version]) {
-        process.stdout.write(yellow('M'));
+        process.stdout.write(c.yellow('M'));
         return solcs[version];
     }
 
     const path = `./.solc/soljson-${version}.js`;
-    process.stdout.write(yellow('F'));
+    process.stdout.write(c.yellow('F'));
     solcs[version] = solc.setupMethods(require(path));
 
     return solcs[version];
@@ -28,13 +25,13 @@ function load(version) {
 
 function compile(hash, base) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
-    process.stdout.write(`${magenta(formath(hash))} ${cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${dim('|')}`);
+    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${c.dim('|')}`);
 
     try {
         const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
         const output = JSON.parse(fs.readFileSync(path.join(base, 'output.json'), 'utf8'));
         if (sym && output && output.contracts) {
-            console.info(dim(` DONE ${green(sym + ' \u2713')}`));
+            console.info(c.dim(` DONE ${c.green(sym + ' \u2713')}`));
             return;
         }
     } catch (err) {
@@ -75,10 +72,10 @@ function compile(hash, base) {
             fs.writeFileSync(path.join(base, `sym.txt`), sym);
             fs.writeFileSync(path.join(base, `output.json`), output);
 
-            process.stdout.write(`${green(sym + ' \u2713')} `);
+            process.stdout.write(`${c.green(sym + ' \u2713')} `);
             break;
         } catch (err) {
-            process.stdout.write(`${red(strikethrough(sym))} `);
+            process.stdout.write(`${c.red(c.strikethrough(sym))} `);
         }
     }
 
