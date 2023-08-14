@@ -1,4 +1,4 @@
 /node_modules/
 /smart-contract-fiesta/
 /.solc/
-/solc.sqlite
+/abi.sqlite

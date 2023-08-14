@@ -49,7 +49,7 @@ async function main() {
     const DS = './smart-contract-fiesta/organized_contracts';
 
     const db = await open({
-        filename: 'solc.sqlite',
+        filename: 'abi.sqlite',
         driver: sqlite3.Database
     });
     await db.exec('CREATE TABLE IF NOT EXISTS contract_hashes (hash TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT NOT NULL, version TEXT NOT NULL, source TEXT) STRICT');
