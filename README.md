@@ -2,15 +2,22 @@
 
 ## Prerequisites
 
-Dataset from <https://huggingface.co/datasets/Zellic/smart-contract-fiesta>
+Dataset must be downloaded from <https://huggingface.co/datasets/Zellic/smart-contract-fiesta>.
 
 ```console
 git lfs install
 git clone https://huggingface.co/datasets/Zellic/smart-contract-fiesta
 ```
 
+It is recommended to remove the `.git` directory from the dataset,
+so it does not calculate _modified_ files under the dataset.
+
 ```console
 rm -rf ./smart-contract-fiesta/.git
+```
+
+```console
+yarn install
 ```
 
 ## `stats`
