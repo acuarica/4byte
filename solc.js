@@ -6,6 +6,7 @@ const c = require('chalk');
 const solc = require('solc');
 
 const formath = hash => hash.slice(0, 4) + '..' + hash.slice(60);
+const formatv = ver => ver.replace('commit.', '');
 
 function compile(hash, base, version, solc) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
@@ -13,7 +14,7 @@ function compile(hash, base, version, solc) {
         return;
     }
 
-    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(metadata.ContractName)} ${c.dim('|')}`);
+    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${c.dim('|')}`);
 
     try {
         const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
@@ -82,7 +83,7 @@ function load(version) {
 }
 
 function main() {
-    const DS = './smart-contract-fiesta/organized_contracts';
+    const config = require('./.config.js');
 
     const version = process.argv[2];
     const solc = load(version);
@@ -91,7 +92,7 @@ function main() {
 
     for (const base of JSON.parse(fs.readFileSync(path.join('.solc', version + '.hashes.json')))) {
         const hash = base.slice(3);
-        compile(hash, `${DS}/${base}`, version, solc);
+        compile(hash, `${config.contracts}/${base}`, version, solc);
     }
 }
 
