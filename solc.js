@@ -6,7 +6,6 @@ const c = require('chalk');
 const solc = require('solc');
 
 const formath = hash => hash.slice(0, 4) + '..' + hash.slice(60);
-const formatv = ver => ver.replace('commit.', '');
 
 function compile(hash, base, version, solc) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
@@ -14,13 +13,13 @@ function compile(hash, base, version, solc) {
         return;
     }
 
-    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${c.dim('|')}`);
+    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(metadata.ContractName)} ${c.dim('|')}`);
 
     try {
         const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
         const output = JSON.parse(fs.readFileSync(path.join(base, 'output.json'), 'utf8'));
         if (sym && output && output.contracts) {
-            console.info(c.dim(` DONE ${c.green(sym + ' \u2713')}`));
+            console.info(c.dim(` ${c.green(sym + '\u2713')}`));
             return;
         }
     } catch (err) {
@@ -72,7 +71,7 @@ function compile(hash, base, version, solc) {
 }
 
 function load(version) {
-    const path = `./.solc/soljson-${version}.js`;
+    const path = `./.solc/${version}.js`;
     console.info('Loading solc', c.yellow(version));
     try {
         return solc.setupMethods(require(path));
@@ -87,12 +86,13 @@ function main() {
 
     const version = process.argv[2];
     const solc = load(version);
-    for (const prefix of fs.readdirSync(DS)) {
-        for (const hash of fs.readdirSync(`${DS}/${prefix}`)) {
-            compile(hash, `${DS}/${prefix}/${hash}`, version, solc);
-        }
-    }
+    console.info(c.blue('solc.version'), solc.version());
+    console.info(c.blue('solc.sermver'), solc.semver());
 
+    for (const base of JSON.parse(fs.readFileSync(path.join('.solc', version + '.hashes.json')))) {
+        const hash = base.slice(3);
+        compile(hash, `${DS}/${base}`, version, solc);
+    }
 }
 
 main();

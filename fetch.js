@@ -5,7 +5,7 @@ const path = require('path');
 const c = require('chalk');
 
 async function download(version) {
-    const path = `./.solc/soljson-${version}.js`;
+    const path = `./.solc/${version}.js`;
 
     if (!fs.existsSync(path)) {
         const resp = await fetch(`https://binaries.soliditylang.org/bin/soljson-${version}.js`);
@@ -26,7 +26,7 @@ async function download(version) {
 async function main() {
     const DS = './smart-contract-fiesta/organized_contracts';
 
-    fs.mkdirSync('./.solc', { recursive: true });
+    fs.mkdirSync('.solc', { recursive: true });
     const versions = new Map();
 
     console.info('Collecting solc version info...');
@@ -40,17 +40,22 @@ async function main() {
             const base = `${DS}/${prefix}/${hash}`;
             const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
             const version = metadata.CompilerVersion;
-            const count = versions.get(version) ?? 0;
-            versions.set(version, count + 1);
+
+            if (!versions.has(version)) {
+                versions.set(version, []);
+            }
+
+            versions.get(version).push(`${prefix}/${hash}`);
         }
     }
 
     console.info('Total', c.bold('solc'), 'Versions:', c.blue(versions.size));
 
     console.info('Fetching versions...');
-    for (const [version, count] of versions.entries()) {
-        process.stdout.write(`Fetching solc ${c.cyan(version)} ${c.magenta(count + ' contracts')}... `);
+    for (const [version, hashes] of versions.entries()) {
+        process.stdout.write(`Fetching solc ${c.cyan(version)} ${c.magenta(hashes.length + ' contracts')}... `);
         await download(version);
+        fs.writeFileSync(`.solc/${version}.hashes.json`, JSON.stringify(hashes, null, 2));
     }
 }
 
