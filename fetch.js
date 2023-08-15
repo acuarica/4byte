@@ -53,7 +53,7 @@ async function main() {
 
     console.info('Fetching versions...');
     for (const [version, hashes] of versions.entries()) {
-        process.stdout.write(`Fetching solc ${c.cyan(version)} ${c.magenta(hashes.length + ' contracts')}... `);
+        process.stdout.write(`Fetching solc ${c.cyan(version)} (used by ${c.magenta(hashes.length + ' contracts')})... `);
         await download(version);
         fs.writeFileSync(`.solc/${version}.hashes.json`, JSON.stringify(hashes, null, 2));
     }
