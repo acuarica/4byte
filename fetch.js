@@ -24,7 +24,7 @@ async function download(version) {
 }
 
 async function main() {
-    const DS = './smart-contract-fiesta/organized_contracts';
+    const config = require('./.config.js');
 
     fs.mkdirSync('.solc', { recursive: true });
     const versions = new Map();
@@ -32,12 +32,12 @@ async function main() {
     console.info('Collecting solc version info...');
     console.info('Prefixes');
 
-    for (const prefix of fs.readdirSync(DS)) {
+    for (const prefix of fs.readdirSync(config.contracts)) {
 
         process.stdout.write(`${prefix} ${parseInt(prefix, 16) % 8 === 7 ? '\n' : c.dim(' | ')}`);
 
-        for (const hash of fs.readdirSync(`${DS}/${prefix}`)) {
-            const base = `${DS}/${prefix}/${hash}`;
+        for (const hash of fs.readdirSync(`${config.contracts}/${prefix}`)) {
+            const base = `${config.contracts}/${prefix}/${hash}`;
             const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
             const version = metadata.CompilerVersion;
 
