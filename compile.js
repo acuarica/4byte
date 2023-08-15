@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const path = require('path');
 const c = require('chalk');
-const solc = require('solc');
 const { fork } = require('child_process');
-const { exit } = require('process');
 
 async function main() {
     const jss = fs.readdirSync('.solc');
