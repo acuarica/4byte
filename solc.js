@@ -3,7 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 const c = require('chalk');
-const solc = require('solc');
 
 const formath = hash => hash.slice(0, 4) + '..' + hash.slice(60);
 const formatv = ver => ver.replace('commit.', '');
@@ -71,22 +70,20 @@ function compile(hash, base, version, solc) {
     console.info();
 }
 
-function load(version) {
-    const path = `./.solc/${version}.js`;
-    console.info('Loading solc', c.yellow(version));
-    try {
-        return solc.setupMethods(require(path));
-    } catch (err) {
-        console.error(c.red('Failed to load solc'), err);
-        process.exit(1);
-    }
-}
-
 function main() {
     const config = require('./.config.js');
 
     const version = process.argv[2];
-    const solc = load(version);
+    const solc = function () {
+        const path = `./.solc/${version}.js`;
+        console.info('Loading solc', c.yellow(version));
+        try {
+            return require('solc').setupMethods(require(path));
+        } catch (err) {
+            console.error(c.red('Failed to load solc'), err);
+            process.exit(1);
+        }
+    }();
     console.info(c.blue('solc.version'), solc.version());
     console.info(c.blue('solc.sermver'), solc.semver());
 
