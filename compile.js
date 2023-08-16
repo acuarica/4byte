@@ -18,7 +18,7 @@ async function main() {
             child.on('exit', code => resolve(code));
             child.on('error', reject);
         });
-        console.info(`${c.magenta(exitCode)}...`);
+        console.info(`> Exit code ${c.magenta(exitCode)}...`);
     }
 }
 
