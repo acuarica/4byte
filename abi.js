@@ -12,7 +12,7 @@ const formatv = ver => ver.replace('commit.', '');
 
 async function abi(db, hash, base) {
     const { ContractName: name, CompilerVersion: version } = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
-    process.stdout.write(`ABI ${c.magenta(formath(hash))} ${c.cyan(name)} ${formatv(version)} ${c.dim('|')} `);
+    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(name)} ${formatv(version)} ${c.dim('|')} `);
 
     const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
     const output = fs.readFileSync(path.join(base, 'output.json'), 'utf8');
