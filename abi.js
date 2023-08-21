@@ -46,7 +46,7 @@ async function abi(db, hash, base) {
 }
 
 async function main() {
-    const DS = './smart-contract-fiesta/organized_contracts';
+    const config = require('./.config.js');
 
     const db = await open({
         filename: 'abi.sqlite',
@@ -57,10 +57,10 @@ async function main() {
     await db.exec('CREATE VIEW IF NOT EXISTS sighashes AS SELECT sighash, COUNT(sighash) AS count FROM contract_functions GROUP BY sighash ORDER BY COUNT(sighash) DESC');
     await db.exec('CREATE VIEW IF NOT EXISTS versions AS SELECT version, COUNT(version) AS count FROM contract_hashes GROUP BY version ORDER BY COUNT(version) DESC');
 
-    for (const prefix of fs.readdirSync(DS)) {
-        for (const hash of fs.readdirSync(`${DS}/${prefix}`)) {
+    for (const prefix of fs.readdirSync(config.contracts)) {
+        for (const hash of fs.readdirSync(`${config.contracts}/${prefix}`)) {
             try {
-                await abi(db, hash, `${DS}/${prefix}/${hash}`);
+                await abi(db, hash, `${config.contracts}/${prefix}/${hash}`);
                 console.info(`${c.green(' \u2713')}`);
             } catch (err) {
                 console.info(`${c.red(err.message + ' \u2A2F')}`);
