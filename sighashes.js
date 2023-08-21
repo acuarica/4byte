@@ -36,7 +36,10 @@ function main() {
         }
     }
 
-    fs.writeFileSync('sighashes.json', JSON.stringify(Array.from(sighashes), null, 2));
+    const arr = Array.from(sighashes);
+    arr.sort();
+
+    fs.writeFileSync('sighashes.json', JSON.stringify(arr, null, 2));
 }
 
 main();
