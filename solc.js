@@ -49,6 +49,15 @@ function compile(hash, base, version, solc) {
         [function () {
             const { compile } = solc;
             const input = fs.readFileSync(path.join(base, 'contract.json'), 'utf8');
+            const { outputSelection } = JSON.parse(input).settings;
+            // for (const file in outputSelection) {
+            //     for (const contract in outputSelection[file]) {
+            //         const outputTypes = outputSelection[file][contract];
+            //         if (!outputTypes.includes('abi')) {
+            //             process.stdout.write(c.dim(`${file}:${contract}:${outputTypes.join(',')}`));
+            //         }
+            //     }
+            // }
             return compile(input);
         }, 'json'],
         // [() => fs.readFileSync(path.join(base, 'main.vy'), 'utf8'), 'vy'],
