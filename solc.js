@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const c = require('chalk');
+const byteSize = require('byte-size');
 
 const formath = hash => hash.slice(0, 4) + '..' + hash.slice(60);
 const formatv = ver => ver.replace('commit.', '');
@@ -10,66 +11,66 @@ const formatv = ver => ver.replace('commit.', '');
 function compile(hash, base, version, solc) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     if (metadata.CompilerVersion !== version) {
-        return;
+        throw new Error(`Version mismatch: ${metadata.CompilerVersion} != ${version}`);
     }
 
-    process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${c.dim('|')}`);
+    process.stdout.write(`${c.magenta(hash)} ${c.cyan(metadata.ContractName)} ${formatv(metadata.CompilerVersion)} ${c.dim('|')} `);
 
+    let output = undefined;
     try {
-        const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
-        const output = JSON.parse(fs.readFileSync(path.join(base, 'output.json'), 'utf8'));
+        output = fs.readFileSync(path.join(base, 'output.jsonc'), 'utf8');
+    } catch (err) { }
+
+    if (output) {
+        const m = output.match(/^\/\/(sol|json)\n/);
+        output = output.slice(m[0].length);
+        output = JSON.parse(output);
+        const sym = m[1];
         if (sym && output && output.contracts) {
-            console.info(c.dim(` ${c.green(sym + '\u2713')}`));
+            console.info(c.dim(`${c.green(sym + '\u2713')}`));
             return;
         }
-    } catch (err) {
     }
 
     const tries = [
-        [function () {
-            const { compile } = solc;
-            const content = fs.readFileSync(path.join(base, 'main.sol'), 'utf8');
-            const input = {
-                language: 'Solidity',
-                sources: {
-                    'main.sol': {
-                        content,
+        ['sol', () => JSON.stringify({
+            language: 'Solidity',
+            sources: {
+                'main.sol': {
+                    content: fs.readFileSync(path.join(base, 'main.sol'), 'utf8'),
+                },
+            },
+            settings: {
+                outputSelection: {
+                    '*': {
+                        '*': ['abi'],
                     },
                 },
-                settings: {
-                    outputSelection: {
-                        '*': {
-                            '*': ['abi'],
-                        },
-                    },
-                },
-            };
-            return compile(JSON.stringify(input));
-        }, 'sol'],
-        [function () {
-            const { compile } = solc;
-            const input = fs.readFileSync(path.join(base, 'contract.json'), 'utf8');
-            const { outputSelection } = JSON.parse(input).settings;
-            // for (const file in outputSelection) {
-            //     for (const contract in outputSelection[file]) {
-            //         const outputTypes = outputSelection[file][contract];
-            //         if (!outputTypes.includes('abi')) {
-            //             process.stdout.write(c.dim(`${file}:${contract}:${outputTypes.join(',')}`));
-            //         }
-            //     }
-            // }
-            return compile(input);
-        }, 'json'],
-        // [() => fs.readFileSync(path.join(base, 'main.vy'), 'utf8'), 'vy'],
+            },
+        })],
+        ['json', () => fs.readFileSync(path.join(base, 'contract.json'), 'utf8')],
     ];
 
-    for (const [tryFn, sym] of tries) {
-        try {
-            const output = tryFn();
-            fs.writeFileSync(path.join(base, `sym.txt`), sym);
-            fs.writeFileSync(path.join(base, `output.json`), output);
+    // const { outputSelection } = JSON.parse(input).settings;
+    // for (const file in outputSelection) {
+    //     for (const contract in outputSelection[file]) {
+    //         const outputTypes = outputSelection[file][contract];
+    //         if (!outputTypes.includes('abi')) {
+    //             process.stdout.write(c.dim(`${file}:${contract}:${outputTypes.join(',')}`));
+    //         }
+    //     }
+    // }
 
-            process.stdout.write(`${c.green(sym + ' \u2713')} `);
+    for (const [sym, tryFn] of tries) {
+        try {
+            const input = tryFn();
+
+            process.stdout.write(`${c.green(sym)} ${byteSize(input.length)} `);
+
+            const output = solc.compile(input);
+            fs.writeFileSync(path.join(base, `output.jsonc`), `//${sym}\n${output}`);
+
+            process.stdout.write(`${c.green('\u2713')}`);
             break;
         } catch (err) {
             process.stdout.write(`${c.red(c.strikethrough(sym))} `);
@@ -96,9 +97,14 @@ function main() {
     console.info(c.blue('solc.version'), solc.version());
     console.info(c.blue('solc.sermver'), solc.semver());
 
+    const filter = process.argv[3];
+    console.info(c.blue('filter'), filter ?? 'all');
+
     for (const base of JSON.parse(fs.readFileSync(path.join('.solc', version + '.hashes.json')))) {
-        const hash = base.slice(3);
-        compile(hash, `${config.contracts}/${base}`, version, solc);
+        const hash = formath(base.slice(3));
+        if (!filter || hash === filter) {
+            compile(hash, `${config.contracts}/${base}`, version, solc);
+        }
     }
 }
 
