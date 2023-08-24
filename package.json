@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "byte-size": "^8.1.1",
     "chalk": "4",
     "ethers": "^6.7.0",
     "listr": "^0.14.3",
