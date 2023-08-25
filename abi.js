@@ -14,10 +14,11 @@ async function abi(db, hash, base) {
     const { ContractName: name, CompilerVersion: version } = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     process.stdout.write(`${c.magenta(formath(hash))} ${c.cyan(name)} ${formatv(version)} ${c.dim('|')} `);
 
-    const sym = fs.readFileSync(path.join(base, 'sym.txt'), 'utf8');
-    const output = fs.readFileSync(path.join(base, 'output.json'), 'utf8');
+    const output = fs.readFileSync(path.join(base, 'output.jsonc'), 'utf8');
+    const m = output.match(/^\/\/(sol|json)\n/);
+    const { contracts } = JSON.parse(output.slice(m[0].length));
+    const sym = m[1];
 
-    const { contracts } = JSON.parse(output);
     process.stdout.write(`${Object.keys(contracts).length} contracts `);
 
     await db.run('INSERT INTO contract_hashes(hash, name, version, source) VALUES (:hash, :name, :version, :source)', {
