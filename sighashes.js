@@ -6,7 +6,8 @@ const c = require('chalk');
 const { FunctionFragment } = require('ethers');
 
 function sighash(base, sighashes) {
-    const output = fs.readFileSync(path.join(base, 'output.json'), 'utf8');
+    let output = fs.readFileSync(path.join(base, 'output.jsonc'), 'utf8');
+    output = output.replace(/^\/\/(sol|json)\n/, '');
     const { contracts } = JSON.parse(output);
 
     for (const file in contracts) {
