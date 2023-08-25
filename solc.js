@@ -102,7 +102,7 @@ function main() {
 
     for (const base of JSON.parse(fs.readFileSync(path.join('.solc', version + '.hashes.json')))) {
         const hash = formath(base.slice(3));
-        if (!filter || hash === filter) {
+        if (!filter || hash.startsWith(filter)) {
             compile(hash, `${config.contracts}/${base}`, version, solc);
         }
     }
