@@ -33,6 +33,7 @@ function main() {
         title: 'Compiling queue ' + q + '...',
         task: () => new Observable(async observer => {
             for (const version of queue) {
+                const fversion = formatv(version);
                 await new Promise((resolve, reject) => {
                     observer.next(version);
                     const child = fork('./solc.js', [version], { silent: true });
@@ -47,7 +48,7 @@ function main() {
                         currentLine = lines.pop();
 
                         lineCount += lines.length;
-                        observer.next(`${formatv(version)}(${lineCount} contracts) ${currentLine}`);
+                        observer.next(`${fversion}(${lineCount} hashes) ${currentLine.replace(fversion + ' ', '')}`);
                     });
                 });
             }
