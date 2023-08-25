@@ -15,4 +15,4 @@ sighashes:
 	./sighashes.js
 
 clean:
-	find ./smart-contract-fiesta/organized_contracts -name "output.json" -delete -print
+	find ./smart-contract-fiesta/organized_contracts -name "output.jsonc" -delete -print
