@@ -8,6 +8,13 @@ const byteSize = require('byte-size');
 const formath = hash => hash.slice(0, 4) + '..' + hash.slice(60);
 const formatv = ver => ver.replace('commit.', '');
 
+const sources = base => Object.fromEntries(fs.readdirSync(base)
+    .filter(file => file.endsWith('.sol'))
+    .map(sol => [sol, {
+        content: fs.readFileSync(path.join(base, sol), 'utf8'),
+    }])
+);
+
 function compile(hash, base, version, solc) {
     const metadata = JSON.parse(fs.readFileSync(path.join(base, 'metadata.json'), 'utf8'));
     if (metadata.CompilerVersion !== version) {
@@ -35,11 +42,7 @@ function compile(hash, base, version, solc) {
     const tries = [
         ['sol', () => JSON.stringify({
             language: 'Solidity',
-            sources: {
-                'main.sol': {
-                    content: fs.readFileSync(path.join(base, 'main.sol'), 'utf8'),
-                },
-            },
+            sources: sources(base),
             settings: {
                 outputSelection: {
                     '*': {
@@ -50,16 +53,6 @@ function compile(hash, base, version, solc) {
         })],
         ['json', () => fs.readFileSync(path.join(base, 'contract.json'), 'utf8')],
     ];
-
-    // const { outputSelection } = JSON.parse(input).settings;
-    // for (const file in outputSelection) {
-    //     for (const contract in outputSelection[file]) {
-    //         const outputTypes = outputSelection[file][contract];
-    //         if (!outputTypes.includes('abi')) {
-    //             process.stdout.write(c.dim(`${file}:${contract}:${outputTypes.join(',')}`));
-    //         }
-    //     }
-    // }
 
     for (const [sym, tryFn] of tries) {
         try {
