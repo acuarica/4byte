@@ -20,6 +20,8 @@ rm -rf ./smart-contract-fiesta/.git
 yarn install
 ```
 
+All internal commands can be executed from `package.json`'s scripts.
+
 ## `stats`
 
 Displays how many contracts are in each prefix and the total number of contract source code.
@@ -91,6 +93,12 @@ Fetching solc v0.8.0+commit.c7dfd78e 1617 contracts... cached ✓
 
 ```console
 ./compile.js
+```
+
+## `sighashes`
+
+```console
+./sighashes.js
 ```
 
 ## `abi`
