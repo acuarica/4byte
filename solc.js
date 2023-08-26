@@ -81,12 +81,14 @@ function compile(hash, base, version, solc) {
 }
 
 function main() {
+    const info = (message, ...optionalParams) => console.info(c.dim('[info]'), message, ...optionalParams);
+
     const config = require('./.config.js');
 
     const version = process.argv[2];
     const solc = function () {
         const path = `./.solc/${version}.js`;
-        console.info('Loading solc', c.yellow(version));
+        info('Loading solc', c.yellow(version));
         try {
             return require('solc').setupMethods(require(path));
         } catch (err) {
@@ -94,11 +96,11 @@ function main() {
             process.exit(1);
         }
     }();
-    console.info(c.blue('solc.version'), solc.version());
-    console.info(c.blue('solc.sermver'), solc.semver());
+    info(c.blue('solc.version'), solc.version());
+    info(c.blue('solc.sermver'), solc.semver());
 
     const filter = process.argv[3];
-    console.info(c.blue('filter'), filter ?? 'all');
+    info(c.blue('filter'), filter ?? 'all');
 
     for (const base of JSON.parse(fs.readFileSync(path.join('.solc', version + '.hashes.json')))) {
         const hash = formath(base.slice(3));
