@@ -8,6 +8,33 @@ const { Observable } = require('rxjs');
 
 const formatv = ver => ver.replace('commit.', '');
 
+/**
+ * @param {number} size 
+ * @param {{version: string; count: number;}[]} solcs 
+ * @returns {string[][]}
+ */
+function queues(size, solcs) {
+    function min(cs) {
+        let q = 0;
+        for (let j = 1; j < cs.length; j++) {
+            if (cs[j] < cs[q]) {
+                q = j;
+            }
+        }
+        return q;
+    }
+
+    const qs = Array.from({ length: size }, () => /** @type {string[]} */ ([]));
+    const cs = qs.map(() => 0);
+    for (let i = 0; i < solcs.length; i++) {
+        const q = min(cs);
+        qs[q].push(solcs[i].version);
+        cs[q] += solcs[i].count;
+    }
+
+    return qs;
+}
+
 function main() {
     const solcs = fs.readdirSync('.solc')
         .filter(file => file.endsWith('.js'))
@@ -16,20 +43,7 @@ function main() {
     solcs.forEach(v => console.info(`Queueing compilation for ${c.cyan(v.version)} ${c.magenta(v.count + ' contract hashes')}...`));
     solcs.sort((lhs, rhs) => rhs.count - lhs.count);
 
-    const queues = Array.from({ length: 8 }, () => []);
-    const counts = queues.map(() => 0);
-    for (let i = 0; i < solcs.length; i++) {
-        let q = 0;
-        for (let j = 1; j < queues.length; j++) {
-            if (counts[j] < counts[q]) {
-                q = j;
-            }
-        }
-        queues[q].push(solcs[i].version);
-        counts[q] += solcs[i].count;
-    }
-
-    const tasks = queues.map((queue, q) => ({
+    const tasks = queues(8, solcs).map((queue, q) => ({
         title: 'Compiling queue ' + q + '...',
         task: () => new Observable(async observer => {
             for (const version of queue) {
