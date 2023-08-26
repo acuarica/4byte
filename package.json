@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "stats": "node stats.js",
+    "fetch": "node fetch.js",
+    "compile": "node compile.js",
+    "sighashes": "node sighashes.js",
+    "abi": "node abi.js",
+    "clean": "find ./smart-contract-fiesta/organized_contracts -name 'output.jsonc' -delete -print"
   },
   "author": "",
   "license": "ISC",
