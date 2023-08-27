@@ -70,7 +70,9 @@ Total Bytecode Hashes: 149386
 
 ## `fetch`
 
-Fetches all `solc` compiler versions and saves them into `.solc` folder.
+Fetches all `solc` compiler versions needed and saves them into `.solc` folder.
+
+See <https://docs.soliditylang.org/en/latest/installing-solidity.html> for details on how to install the `solc` compiler.
 
 ```console
 ./fetch.js
