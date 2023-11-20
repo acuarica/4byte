@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const assert = require('assert');
+const { readFileSync } = require('fs');
 
 const c = {
 	mag: text => `\x1b[35m${text}\x1b[0m`,
@@ -8,13 +9,16 @@ const c = {
 };
 
 async function open(url) {
-	console.info('Open', c.cyan(url));
-	return new Set(await (await fetch(url)).json());
+  const arr = url.startsWith('https://')
+    ? await (await fetch(url)).json()
+    : JSON.parse(readFileSync('./sighashes.json', 'utf-8'));
+	console.info('Open', c.cyan(url), arr.length, 'entries');
+	return new Set(arr);
 }
 
 async function main() {
-	const x = await open('https://raw.githubusercontent.com/acuarica/evm/main/selectors/functions.json');
-	const y = await open('https://raw.githubusercontent.com/acuarica/4byte/main/sighashes.json');
+	const x = await open('https://raw.githubusercontent.com/acuarica/sevm-4byte/main/data/functions.json');
+	const y = await open('./sighashes.json');
 
 	console.info('functions', x.size, ' -- ', 'sighashes', y.size);
 
