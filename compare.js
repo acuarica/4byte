@@ -17,7 +17,7 @@ async function open(url) {
 }
 
 async function main() {
-	const x = await open('https://raw.githubusercontent.com/acuarica/sevm-4byte/main/data/functions.json');
+	const x = await open('https://raw.githubusercontent.com/acuarica/evm/main/scripts/4byte/functions.json');
 	const y = await open('./sighashes.json');
 
 	console.info('functions', x.size, ' -- ', 'sighashes', y.size);
