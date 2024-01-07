@@ -9,9 +9,9 @@ const c = {
 };
 
 async function open(url) {
-  const arr = url.startsWith('https://')
-    ? await (await fetch(url)).json()
-    : JSON.parse(readFileSync('./sighashes.json', 'utf-8'));
+	const arr = url.startsWith('https://')
+		? await (await fetch(url)).json()
+		: JSON.parse(readFileSync(url, 'utf-8'));
 	console.info('Open', c.cyan(url), arr.length, 'entries');
 	return new Set(arr);
 }
